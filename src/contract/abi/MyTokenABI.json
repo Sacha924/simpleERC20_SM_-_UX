@@ -282,9 +282,9 @@
   },
   "sources": {
     "MyToken.sol": {
-      "keccak256": "0x69ecf76499674b050b70b69df0c82c81c915efeebc9ce97ed4af7e0ca371f261",
+      "keccak256": "0x7f5f4c8843a4e5bf652896fa35c3bf617c562b218c5f247c33be60a4d049ca92",
       "license": "MIT",
-      "urls": ["bzz-raw://e9739561c7cd508fe5a53b9068475e528fccb7d4be068490d1c721805c3082f0", "dweb:/ipfs/QmP1vUSo2ehXiHYP13D9o6PhdzxsPXeFG3zkBzoFT6pySN"]
+      "urls": ["bzz-raw://0451b2758b153f19ca52b3f4764ab03d8b81a990f60e7f781be58305b745b092", "dweb:/ipfs/QmbDNbdJod2YzV7temPjHfshjXZapwsodDntx4WXeRVvSx"]
     }
   },
   "version": 1
