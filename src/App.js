@@ -6,35 +6,49 @@ function App() {
   const [errorMess, setErrorMess] = useState("");
   const [successMess, setSuccessMess] = useState("");
   const [contractInstance, setContractInstance] = useState(null);
-  const [infos, setInfos] = useState({});
+  const [isConnected, setIsConnected] = useState(false);
 
+  const [infos, setInfos] = useState({});
   const inputRef_address = useRef();
   const inputRef_value = useRef();
 
   const contractAdress = "0x2f7DD9a72A3610aF3a0a3916e7f7d41853d71c6a";
   const abi = require("./contract/abi/MyTokenABI.json").output.abi;
   useEffect(() => {
+    if (window.ethereum) {
+      if (window.ethereum.isConnected()) setIsConnected(true);
+    }
     displayInfos();
-  }, []);
+  }, [isConnected]);
+
+  const connectWallet = async () => {
+    await window.ethereum
+      .enable()
+      .then(setIsConnected(true))
+      .catch((e) => console.log(e));
+    console.log(isConnected);
+  };
 
   const displayInfos = async () => {
     // check if a provider is available
     if (window.ethereum) {
-      const web3 = new Web3(window.ethereum); // create a web3 instance (library that allows you to interact with the Ethereum blockchain) using the provider from MetaMask (window.ethereum)
-      const [account, chainId, lastblock] = await Promise.all([web3.eth.getAccounts(), web3.eth.getChainId(), web3.eth.getBlockNumber()]).catch((error) => {
-        // This code will be executed if any of the promises are rejected
-        setErrorMess(error);
-      });
+      if (isConnected) {
+        const web3 = new Web3(window.ethereum); // create a web3 instance (library that allows you to interact with the Ethereum blockchain) using the provider from MetaMask (window.ethereum)
+        const [account, chainId, lastblock] = await Promise.all([web3.eth.getAccounts(), web3.eth.getChainId(), web3.eth.getBlockNumber()]).catch((error) => {
+          // This code will be executed if any of the promises are rejected
+          setErrorMess(error);
+        });
 
-      const contractInstance = new web3.eth.Contract(abi, contractAdress); // creates an instance of a contract on the Ethereum blockchain using its ABI and contract address.
-      setContractInstance(contractInstance);
+        const contractInstance = new web3.eth.Contract(abi, contractAdress); // creates an instance of a contract on the Ethereum blockchain using its ABI and contract address.
+        setContractInstance(contractInstance);
 
-      const balance = await contractInstance.methods.balanceOf(account[0]).call(); //  get the balance of the account that is connected to MetaMask
-      const decimal = await contractInstance.methods.decimals().call(); // get the number of decimals of the token
-      const realBalance = balance / 10 ** decimal; // convert the balance to a real number
-      const symbol = await contractInstance.methods.symbol().call(); // get the symbol of the token
+        const balance = await contractInstance.methods.balanceOf(account[0]).call(); //  get the balance of the account that is connected to MetaMask
+        const decimal = await contractInstance.methods.decimals().call(); // get the number of decimals of the token
+        const realBalance = balance / 10 ** decimal; // convert the balance to a real number
+        const symbol = await contractInstance.methods.symbol().call(); // get the symbol of the token
 
-      setInfos({ account, chainId, lastblock, balance, decimal, realBalance, symbol });
+        setInfos({ account, chainId, lastblock, balance, decimal, realBalance, symbol });
+      }
     } else {
       setErrorMess("Please install MetaMask!");
     }
@@ -45,7 +59,7 @@ function App() {
       .tranfer(_to, _value)
       .call()
       .catch((e) => setErrorMess(`Something Wrong Happened : ${e}`));
-    if (success) setSuccessMess("Transaction Successful !");
+    if (success) setSuccessMess("Transaction Successful ! You just sent " + _value + " tokens to " + _to + " !");
   };
 
   const handleSubmit = (e) => {
@@ -54,7 +68,6 @@ function App() {
     const _value = parseInt(inputRef_value.current.value);
     sendTokens(_address, _value);
   };
-  // LISTE WHEN WE CHANGE ACCOUNT IN METAMASK
 
   const styleLabel = { color: "#FB8DFF", fontSize: "28px", fontWeight: "400", marginBottom: "1%" };
   return (
@@ -68,6 +81,9 @@ function App() {
             <p style={{ color: "#FAA9CA", fontSize: "44px", fontWeight: "500", margin: "0% 0% 5% 62%", whiteSpace: "nowrap" }}>
               Current Balance : {infos.realBalance} {infos.symbol}
             </p>
+          </div>
+          <div>
+            <button onClick={connectWallet}>Connect your wallet</button>
           </div>
           <div>
             <form id="tokenForm" onSubmit={handleSubmit}>
