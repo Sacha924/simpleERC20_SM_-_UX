@@ -20,3 +20,11 @@
   width: 100%;
   height: 100%;
 }
+#connectHandl {
+  width: 10%;
+  height: 5%;
+  position:fixed;
+  top: 10px;
+  right: 10px;
+  
+}

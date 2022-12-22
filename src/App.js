@@ -14,19 +14,31 @@ function App() {
 
   const contractAdress = "0x2f7DD9a72A3610aF3a0a3916e7f7d41853d71c6a";
   const abi = require("./contract/abi/MyTokenABI.json").output.abi;
+
+  // I use two useEffect to prevent an infinite loop, because if the useEffect update the state of isConnected, but his also called when the isConnected is update, this will create a loop
   useEffect(() => {
     if (window.ethereum) {
-      if (window.ethereum.isConnected()) setIsConnected(true);
+      setIsConnected(window.ethereum.isConnected());
+      window.ethereum.on("accountsChanged", (e) => {
+        if (e.length == 0) {
+          document.location.reload();
+        } //because when the user disconnects is metamask this event returns an empty array, we only want to consider the disconnection event here
+      });
+      window.ethereum.on("chainChanged", () => {
+        document.location.reload();
+      });
     }
+  }, []);
+
+  useEffect(() => {
     displayInfos();
   }, [isConnected]);
 
   const connectWallet = async () => {
     await window.ethereum
       .enable()
-      .then(setIsConnected(true))
-      .catch((e) => console.log(e));
-    console.log(isConnected);
+      .then(() => setIsConnected(true))
+      .catch((e) => console.log("error :", e));
   };
 
   const displayInfos = async () => {
@@ -39,15 +51,16 @@ function App() {
           setErrorMess(error);
         });
 
-        const contractInstance = new web3.eth.Contract(abi, contractAdress); // creates an instance of a contract on the Ethereum blockchain using its ABI and contract address.
-        setContractInstance(contractInstance);
+        if (account !== []) {
+          const contractInstance = new web3.eth.Contract(abi, contractAdress); // creates an instance of a contract on the Ethereum blockchain using its ABI and contract address.
+          setContractInstance(contractInstance);
+          const balance = await contractInstance.methods.balanceOf(account[0]).call(); //  get the balance of the account that is connected to MetaMask
+          const decimal = await contractInstance.methods.decimals().call(); // get the number of decimals of the token
+          const realBalance = balance / 10 ** decimal; // convert the balance to a real number
+          const symbol = await contractInstance.methods.symbol().call(); // get the symbol of the token
 
-        const balance = await contractInstance.methods.balanceOf(account[0]).call(); //  get the balance of the account that is connected to MetaMask
-        const decimal = await contractInstance.methods.decimals().call(); // get the number of decimals of the token
-        const realBalance = balance / 10 ** decimal; // convert the balance to a real number
-        const symbol = await contractInstance.methods.symbol().call(); // get the symbol of the token
-
-        setInfos({ account, chainId, lastblock, balance, decimal, realBalance, symbol });
+          setInfos({ account, chainId, lastblock, balance, decimal, realBalance, symbol });
+        }
       }
     } else {
       setErrorMess("Please install MetaMask!");
@@ -65,11 +78,13 @@ function App() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const _address = inputRef_address.current.value;
-    const _value = parseInt(inputRef_value.current.value);
+    const _value = parseFloat(inputRef_value.current.value); //*(10**infos.decimal);
+    console.log(_address, _value);
     sendTokens(_address, _value);
   };
 
   const styleLabel = { color: "#FB8DFF", fontSize: "28px", fontWeight: "400", marginBottom: "1%" };
+
   return (
     <div>
       {errorMess === "" ? (
@@ -83,19 +98,23 @@ function App() {
             </p>
           </div>
           <div>
-            <button onClick={connectWallet}>Connect your wallet</button>
+            {!isConnected && (
+              <button id="connectHandl" onClick={connectWallet}>
+                Connect your wallet
+              </button>
+            )}
           </div>
           <div>
             <form id="tokenForm" onSubmit={handleSubmit}>
               <label htmlFor="addressTo" style={styleLabel}>
                 Address You want to send tokens to
               </label>
-              <input type="text" id="addressTo" placeholder="0x..." style={{ textAlign: "center" }} required size={42} ref={inputRef_address} />
+              <input type="text" id="addressTo" name="addressTo" placeholder="0x..." style={{ textAlign: "center" }} required size={44} ref={inputRef_address} />
               <br />
               <label htmlFor="amount" style={styleLabel}>
                 Amount of tokens you want to send
               </label>
-              <input type="number" id="amount" placeholder="0.00...1 (18 decimals max)" style={{ textAlign: "center" }} step={1 / 10 ** infos.decimal} required size={18} ref={inputRef_value} />
+              <input type="number" id="amount" name="amount" placeholder="0.00...1 (18 decimals max)" style={{ textAlign: "center" }} step={1 / 10 ** infos.decimal} required size={18} ref={inputRef_value} />
 
               <button type="submit" style={{ color: "#FB8DFF", backgroundColor: "black", width: "23%", height: "30px", marginTop: "1%" }}>
                 Send Tokens
